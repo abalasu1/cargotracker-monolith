@@ -1,112 +1,264 @@
-<p align="center">
-    <a href="https://cloud.ibm.com">
-        <img src="https://my1.digitalexperience.ibm.com/8304c341-f896-4e04-add0-0a9ae02473ba/dxdam/2d/2d559197-6763-4e47-a2cb-8f54c449ff26/ibm-cloud.svg" height="100" alt="IBM Cloud">
-    </a>
-</p>
+# Jakarta EE 8 Implementation utilizing Open Liberty
+# Credits: Based on code provided as part of Practical Domain Driven design book. 
 
-<p align="center">
-    <a href="https://cloud.ibm.com">
-    <img src="https://img.shields.io/badge/IBM%20Cloud-powered-blue.svg" alt="IBM Cloud">
-    </a>
-    <a href="https://www.ibm.com/developerworks/learn/java/">
-    <img src="https://img.shields.io/badge/platform-java-lightgrey.svg?style=flat" alt="platform">
-    </a>
-    <img src="https://img.shields.io/badge/license-Apache2-blue.svg?style=flat" alt="Apache 2">
-</p>
+This Chapter contains a complete DDD implementation of the Cargo Tracker application based on the Jakarta EE Platform utilizing 
+the OpenLiberty (v19.0.0.9) implementation
+
+The implementation adopts a modulithic based architectural style and uses the following technologies
+  - Jakarta EE v8.0 (WebProfile) as the core chassis
+  - CDI Events as the messaging infrastructure which enables loose coupling between the various modules
+  - MySql as the underlying Database
+  - Single WAR file which contains all the modules
+  - OpenLiberty v19.0.0.9 as the runtime which has support for Jakarta EE 8.0
+  
+The documentation covers the setup and testing process needed to run the cargotracker monolith correctly. 
+
+# Test Case
+
+The test case is as follows
+
+- A Cargo is booked to be delivered from Hong Kong to New York with the delivery deadline of 28 September 2019
+- Based on the specifications the Cargo is routed accordingly by assigning an itinierary
+- The Cargo is handled at the various ports of the itinerary and is finally claimed by the customer
+- The customer can track the cargo at any point of time with a unique Tracking Number
 
 
-# Create and deploy a Java - MicroProfile / Java EE application
+# Modules
 
-> We have applications available for [Node.js Express](https://github.com/IBM/node-express-app), [Go Gin](https://github.com/IBM/go-gin-app), [Python Flask](https://github.com/IBM/python-flask-app), [Python Django](https://github.com/IBM/python-django-app), [Java Spring](https://github.com/IBM/java-spring-app), [Java Liberty](https://github.com/IBM/java-liberty-app), [Swift Kitura](https://github.com/IBM/swift-kitura-app), [Android](https://github.com/IBM/android-app), and [iOS](https://github.com/IBM/ios-app).
+Booking Module
 
-In this sample application, you will create a Java Liberty cloud application. This provides a starting point for creating Java web applications running on [WebSphere Liberty](https://developer.ibm.com/wasdev/). It contains no default application code, but comes with standard best practices, including a health check.
+    This module takes care of all the operations associated with the booking of the Cargo. 
+    
+Routing Module
 
-This application exposes the following endpoints:
+    This module takes care of all the operations associated with the routing of the Cargo. 
 
-* Health endpoint: `<host>:<port>/<contextRoot>/health`
-* Web content: `<host>:<port>/<contextRoot>`
+Tracking Module
 
-The context root is set in the `src/main/webapp/WEB-INF/ibm-web-ext.xml` file. The web application has a health endpoint which is accessible at `<host>:<port>/javalibertyapp/health`. The ports are set in the `pom.xml` file.
+    This module takes care of all the operations associated with the tracking of the Cargo. 
 
-## Steps
+Handling Module
 
-You can [deploy this application to IBM Cloud](https://cloud.ibm.com/developer/appservice/starter-kits/java-liberty-app) or [build it locally](#building-locally) by cloning this repo first.  Once your app is live, you can access the `/health` endpoint to build out your cloud native application.
+    This module takes care of all the operations associated with the handling of the Cargo. 
 
-### Deploying to IBM Cloud
+# Database Details / DDL / DML
 
-<p align="center">
-    <a href="https://cloud.ibm.com/developer/appservice/starter-kits/java-liberty-app">
-    <img src="https://cloud.ibm.com/devops/setup/deploy/button_x2.png" alt="Deploy to IBM Cloud">
-    </a>
-</p>
+    Database Name -> cargotracker (user: cargotracker / pw: cargotracker)
+    Tables ->
+    
+    ##Cargo Table DDL
+	CREATE TABLE `cargo` (
+	  `ID` int(11) NOT NULL AUTO_INCREMENT,
+	  `BOOKING_ID` varchar(20) NOT NULL,
+	  `TRANSPORT_STATUS` varchar(100) NOT NULL,
+	  `ROUTING_STATUS` varchar(100) NOT NULL,
+	  `spec_origin_id` varchar(20) DEFAULT NULL,
+	  `spec_destination_id` varchar(20) DEFAULT NULL,
+	  `SPEC_ARRIVAL_DEADLINE` date DEFAULT NULL,
+	  `origin_id` varchar(20) DEFAULT NULL,
+	  `BOOKING_AMOUNT` int(11) NOT NULL,
+	  `handling_event_id` int(11) DEFAULT NULL,
+	  `next_expected_location_id` varchar(20) DEFAULT NULL,
+	  `next_expected_handling_event_type` varchar(20) DEFAULT NULL,
+	  `next_expected_voyage_id` varchar(20) DEFAULT NULL,
+	  `last_known_location_id` varchar(20) DEFAULT NULL,
+	  `current_voyage_number` varchar(100) DEFAULT NULL,
+	  `last_handling_event_id` int(11) DEFAULT NULL,
+	  `last_handling_event_type` varchar(20) DEFAULT NULL,
+	  `last_handling_event_location` varchar(20) DEFAULT NULL,
+	  `last_handling_event_voyage` varchar(20) DEFAULT NULL,
+	  PRIMARY KEY (`ID`)
+	) ENGINE=InnoDB AUTO_INCREMENT=2923 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+    
+    
+    ##Leg Table DDL
+    	CREATE TABLE `LEG` (
+	  `ID` int(11) NOT NULL AUTO_INCREMENT,
+	  `LOAD_TIME` timestamp NULL DEFAULT NULL,
+	  `UNLOAD_TIME` timestamp NULL DEFAULT NULL,
+	  `load_location_id` varchar(20) DEFAULT NULL,
+	  `unload_location_id` varchar(20) DEFAULT NULL,
+	  `voyage_number` varchar(100) DEFAULT NULL,
+	  `CARGO_ID` int(11) DEFAULT NULL,
+	  PRIMARY KEY (`ID`)
+	) ENGINE=InnoDB AUTO_INCREMENT=3095 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+    
+    ##Location Table DDL
+    CREATE TABLE `location` (
+  	`ID` int(11) DEFAULT NULL,
+  	`NAME` varchar(50) DEFAULT NULL,
+  	`UNLOCODE` varchar(100) DEFAULT NULL
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-Click **Deploy to IBM Cloud** to deploy this same application to IBM Cloud. This option creates a deployment pipeline, complete with a hosted GitLab project and a DevOps toolchain. You can deploy your app to Cloud Foundry, a Kubernetes cluster, or a Red Hat OpenShift cluster. OpenShift is available only through a standard cluster, which requires you to have a billable account.
+    ##Voyage Table DDL
+    CREATE TABLE `voyage` (
+  	`Id` int(11) NOT NULL AUTO_INCREMENT,
+  	`voyage_number` varchar(20) NOT NULL,
+  	PRIMARY KEY (`Id`)
+	) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+    
+    ##Carrier Movement Table DDL -
+    CREATE TABLE `carrier_movement` (
+	  `Id` int(11) NOT NULL AUTO_INCREMENT,
+	  `arrival_location_id` varchar(100) DEFAULT NULL,
+	  `departure_location_id` varchar(100) DEFAULT NULL,
+	  `voyage_id` int(11) DEFAULT NULL,
+	  `arrival_date` date DEFAULT NULL,
+	  `departure_date` date DEFAULT NULL,
+	  PRIMARY KEY (`Id`)
+	) ENGINE=InnoDB AUTO_INCREMENT=1358 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+    
+    ### Data to ensure Routing works fine ->
+    	insert voyage (Id,voyage_number) values(3,'0100S');
+    insert voyage (Id,voyage_number) values(4,'0101S');
+    insert voyage (Id,voyage_number) values(5,'0102S');
 
-[IBM Cloud DevOps](https://www.ibm.com/cloud/devops) services provides toolchains as a set of tool integrations that support development, deployment, and operations tasks inside IBM Cloud.
+    insert into carrier_movement (Id,arrival_location_id,departure_location_id,voyage_id,arrival_date,departure_date) 		values (1355,'CNHGH','CNHKG',3,'2019-08-28','2019-08-25');
+    insert into carrier_movement (Id,arrival_location_id,departure_location_id,voyage_id,arrival_date,departure_date) 		values (1356,'JNTKO','CNHGH',4,'2019-09-10','2019-09-01');
+    insert into carrier_movement (Id,arrival_location_id,departure_location_id,voyage_id,arrival_date,departure_date) 		values (1357,'USNYC','JNTKO',5,'2019-09-25','2019-09-15');  
+   
+    ##Tracking_activity DDL
+   	 CREATE TABLE `tracking_activity` (
+	  `Id` int(11) NOT NULL AUTO_INCREMENT,
+	  `tracking_number` varchar(20) NOT NULL,
+	  `booking_id` varchar(20) DEFAULT NULL,
+	  PRIMARY KEY (`Id`)
+	) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+    
+    ##Tracking_handling_events DDL
+	  CREATE TABLE `tracking_handling_events` (
+	  `Id` int(11) NOT NULL AUTO_INCREMENT,
+	  `tracking_id` int(11) DEFAULT NULL,
+	  `event_type` varchar(225) DEFAULT NULL,
+	  `event_time` timestamp NULL DEFAULT NULL,
+	  `location_id` varchar(100) DEFAULT NULL,
+	  `voyage_number` varchar(20) DEFAULT NULL,
+	  PRIMARY KEY (`Id`)
+	) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+    
+  ##Handling_activity DDL
+	  CREATE TABLE `handling_activity` (
+	  `id` int(11) NOT NULL AUTO_INCREMENT,
+	  `event_completion_time` timestamp NULL DEFAULT NULL,
+	  `event_type` varchar(225) DEFAULT NULL,
+	  `booking_id` varchar(20) DEFAULT NULL,
+	  `voyage_number` varchar(100) DEFAULT NULL,
+	  `location` varchar(100) DEFAULT NULL,
+	  PRIMARY KEY (`id`)
+	) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+    
+   
+  # Running the application
+  
+    Execute maven command mvn install . This command builds the cargotracker application and creates a .war file in the target directory. 
+    It also configures and installs Open Liberty into the target/liberty/wlp directory.
+    
+    Execute maven command mvn liberty:start server. This goal starts an Open Liberty server instance. 
+    The  pom.xml is already configured to start the application in this server instance.
+   
+  # JSON Requests (Test via Postman) ->
+    
+    
+    Cargo Booking (http://localhost:9080/cargotracker/serviceapi/cargobooking)
+    --------------------------------------------------------------------------
 
-### Building Locally
+    {
+        "bookingAmount": 100,
+        "originLocation": "CNHKG",
+        "destLocation" : "USNYC",
+        "destArrivalDeadline" : "2019-09-28"
+    }
+    
+    This returns a unique "Booking Id" which should be put into all requests with the placeholder <<BookingId>>
+    
+    Cargo Routing (http://localhost:8080/cargotracker/serviceapi/cargorouting)
+    --------------------------------------------------------------------------
+    {
+      "bookingId": "<<BookingId>>"
+    }
 
-To get started building this application locally, you can either run the application natively or use the [IBM Cloud Developer Tools](https://cloud.ibm.com/docs/cli?topic=cloud-cli-getting-started) for containerization and easy deployment to IBM Cloud.
-
-#### Native Application Development
-
-* [Maven](https://maven.apache.org/install.html)
-* Java 8: Any compliant JVM should work.
-  * [Java 8 JDK from Oracle](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-  * [Java 8 JDK from IBM (AIX, Linux, z/OS, IBM i)](http://www.ibm.com/developerworks/java/jdk/),
-    or [Download a Liberty server package](https://developer.ibm.com/assets/wasdev/#filter/assetTypeFilters=PRODUCT)
-    that contains the IBM JDK (Windows, Linux)
-
-To build and run the application:
-1. `mvn install`
-1. `mvn liberty:run-server`
-
-To run an application in Docker use the Docker file called `Dockerfile`. If you do not want to install Maven locally you can use `Dockerfile-tools` to build a container with Maven installed.
-
-You can verify the state of your locally running application using the Selenium UI test script included in the `scripts` directory.
-
-#### IBM Cloud Developer Tools
-
-Install [IBM Cloud Developer Tools](https://cloud.ibm.com/docs/cli?topic=cloud-cli-getting-started) on your machine by running the following command:
-```
-curl -sL https://ibm.biz/idt-installer | bash
-```
-
-Create an application on IBM Cloud by running:
-
-```bash
-ibmcloud dev create
-```
-
-This will create and download a starter application with the necessary files needed for local development and deployment.
-
-Your application will be compiled with Docker containers. To compile and run your app, run:
-
-```bash
-ibmcloud dev build
-ibmcloud dev run
-```
-
-This will launch your application locally. When you are ready to deploy to IBM Cloud on Cloud Foundry or Kubernetes, run one of the following commands:
-
-```bash
-ibmcloud dev deploy -t buildpack // to Cloud Foundry
-ibmcloud dev deploy -t container // to K8s cluster
-```
-
-You can build and debug your app locally with:
-
-```bash
-ibmcloud dev build --debug
-ibmcloud dev debug
-```
-
-## Next Steps
-* Learn more about augmenting your Java applications on IBM Cloud with the [Java Programming Guide](https://cloud.ibm.com/docs/java?topic=java-getting-started).
-* Explore other [sample applications](https://cloud.ibm.com/developer/appservice/starter-kits) on IBM Cloud.
-
-## License
-
-This sample application is licensed under the Apache License, Version 2. Separate third-party code objects invoked within this code pattern are licensed by their respective providers pursuant to their own separate licenses. Contributions are subject to the [Developer Certificate of Origin, Version 1.1](https://developercertificate.org/) and the [Apache License, Version 2](https://www.apache.org/licenses/LICENSE-2.0.txt).
-
-[Apache License FAQ](https://www.apache.org/foundation/license-faq.html#WhatDoesItMEAN)
+ 
+    Cargo Handling (http://localhost:9080/cargotracker/serviceapi/cargohandling)
+    -----------------------------------------------------------------------------
+    Run in Sequence
+    
+    Recieved at port
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "CNHKG",
+	    "handlingType" : "RECEIVE",
+	    "completionTime": "2019-08-23",
+	    "voyageNumber" : ""
+    }
+    
+    Loaded onto carrier
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "CNHKG",
+	    "handlingType" : "LOAD",
+	    "completionTime": "2019-08-25",
+	    "voyageNumber" : "0100S"
+    }
+    
+    Unloaded
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "CNHGH",
+	    "handlingType" : "UNLOAD",
+	    "completionTime": "2019-08-28",
+	    "voyageNumber" : "0100S"
+    }
+    
+    Loaded onto next carrier
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "CNHGH",
+	    "handlingType" : "LOAD",
+	    "completionTime": "2019-09-01",
+	    "voyageNumber" : "0101S"
+    }
+    
+    Unloaded
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "JNTKO",
+	    "handlingType" : "UNLOAD",
+	    "completionTime": "2019-09-10",
+	    "voyageNumber" : "0101S"
+    }
+    
+    Loaded onto next carrier
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "JNTKO",
+	    "handlingType" : "LOAD",
+	    "completionTime": "2019-09-15",
+	    "voyageNumber" : "0102S"
+    }
+    
+    Unloaded
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "USNYC",
+	    "handlingType" : "UNLOAD",
+	    "completionTime": "2019-09-25",
+	    "voyageNumber" : "0102S"
+    }
+    
+    Customs
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "USNYC",
+	    "handlingType" : "CUSTOMS",
+	    "completionTime": "2019-09-26",
+	    "voyageNumber" : ""
+    }
+    
+    Claimed
+    {
+	    "bookingId" : "<<BookingId>>",
+	    "unLocode" : "USNYC",
+	    "handlingType" : "CLAIM",
+	    "completionTime": "2019-09-28",
+	    "voyageNumber" : ""
+    }

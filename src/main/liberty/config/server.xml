@@ -1,20 +1,22 @@
-<server description="Sample Liberty server">
+<server description="Cargo Tracker Server">
+    <featureManager>
+        <feature>webprofile-8.0</feature>
+    </featureManager>
 
-  <featureManager>
-      <feature>microprofile-1.2</feature>
-      <feature>jndi-1.0</feature>
-  </featureManager>
+    <httpEndpoint httpPort="9080" httpsPort="9443" id="defaultHttpEndpoint"  host="*" />
 
-  <httpEndpoint httpPort="${default.http.port}" httpsPort="${default.https.port}"
-      id="defaultHttpEndpoint" host="*" />
+    <webApplication
+            id="cargotracker" location="cargotracker.war"
+            contextRoot="cargotracker" />
 
-
-
-  <!-- Automatically expand WAR files and EAR files -->
-  <applicationManager autoExpand="true"/>
-
-  <applicationMonitor pollingRate="1000ms"/>
-
-  <webApplication name="javalibertyapp-1.0-SNAPSHOT" location="${app.location}" contextRoot="/"/>
-
+    <!-- Declare the jar files for MySQL access through JDBC. -->
+    <dataSource id="cargotracker" jndiName="jdbc/cargotracker">
+        <jdbcDriver libraryRef="MySQLLib"/>
+        <properties databaseName="cargotracker"
+                    serverName="mysql" portNumber="3306"
+                    user="cargotracker" password="cargotracker" serverTimezone="EST"/>
+    </dataSource>
+    <library id="MySQLLib">
+        <file name="${server.config.dir}/lib/mysql-connector-java-8.0.17.jar"/>
+    </library>
 </server>
