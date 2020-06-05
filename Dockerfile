@@ -1,28 +1,44 @@
-# IBM Java SDK UBI is not available on public docker yet. Use regular
-# base as builder until this is ready. For reference:
-# https://github.com/ibmruntimes/ci.docker/tree/master/ibmjava/8/sdk/ubi-min
+FROM adoptopenjdk/openjdk8-openj9 AS build-stage
 
-FROM ibmjava:8-sdk AS builder
-LABEL maintainer="IBM Java Engineering at IBM Cloud"
+RUN apt-get update && \
+    apt-get install -y maven unzip
 
-WORKDIR /app
-COPY . /app
+COPY . /project
+WORKDIR /project
 
-RUN apt-get update && apt-get install -y maven
-RUN mvn -N io.takari:maven:wrapper -Dmaven=3.5.0
-RUN ./mvnw install
+#RUN mvn -X initialize process-resources verify => to get dependencies from maven
+RUN mvn clean package	
+#RUN mvn --version
+RUN mvn --version
 
-# Multi-stage build. New build stage that uses the UBI as the base image.
-FROM ibmcom/websphere-liberty:20.0.0.3-full-java8-ibmjava-ubi
-LABEL maintainer="IBM Java Engineering at IBM Cloud"
-ENV PATH /project/target/liberty/wlp/bin/:$PATH
+RUN mkdir -p /config/apps && \
+    mkdir -p /config/lib && \
+    cp ./src/main/liberty/config/server.xml /config && \
+    cp ./target/cargotracker-1.0.war /config/apps/cargotracker.war && \
+    if [ ! -z "$(ls ./src/main/liberty/lib)" ]; then \
+        cp ./src/main/liberty/lib/mysql-connector-java-8.0.17.jar /config/lib/mysql-connector-java-8.0.17.jar; \
+    fi
 
-COPY --from=builder /app/target/liberty/wlp/usr/servers/defaultServer /config/
+#FROM ibmcom/websphere-liberty:webProfile7-ubi-min-amd64
+FROM websphere-liberty:webProfile8
 
-# Grant write access to apps folder, this is to support old and new docker versions.
-# Liberty document reference : https://hub.docker.com/_/websphere-liberty/
+ARG SSL=true
+
+ARG MP_MONITORING=true
+ARG HTTP_ENDPOINT=false
+
+RUN mkdir -p /opt/ibm/wlp/usr/shared/config/lib/global
+COPY --chown=1001:0 --from=build-stage /config/ /config/
+
 USER root
-RUN chmod g+w /config/apps
+RUN configure.sh
 USER 1001
-# install any missing features required by server config
-RUN installUtility install --acceptLicense defaultServer
+
+# Upgrade to production license if URL to JAR provided
+ARG LICENSE_JAR_URL
+RUN \
+   if [ $LICENSE_JAR_URL ]; then \
+     wget $LICENSE_JAR_URL -O /tmp/license.jar \
+     && java -jar /tmp/license.jar -acceptLicense /opt/ibm \
+     && rm /tmp/license.jar; \
+   fi
