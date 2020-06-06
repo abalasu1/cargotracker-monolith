@@ -31,7 +31,7 @@ RUN mkdir -p /opt/ibm/wlp/usr/shared/config/lib/global
 COPY --chown=1001:0 --from=build-stage /config/ /config/
 
 USER root
-RUN configure.sh
+RUN chmod g+w /config/apps
 USER 1001
 
 # Upgrade to production license if URL to JAR provided
