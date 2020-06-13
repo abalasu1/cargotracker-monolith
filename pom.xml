@@ -70,11 +70,11 @@
                 <artifactId>liberty-maven-plugin</artifactId>
                 <configuration>
                     <assemblyArtifact>
-                        <groupId>io.openliberty</groupId>
-                        <artifactId>openliberty-runtime</artifactId>
+                        <groupId>com.ibm.websphere.appserver.runtime</groupId>
+                        <artifactId>wlp-javaee8</artifactId>
                         <version>RELEASE</version>
                         <type>zip</type>
-                    </assemblyArtifact>
+                    </assemblyArtifact>                
                     <serverName>${project.artifactId}Server</serverName>
                     <stripVersion>true</stripVersion>
                     <configFile>src/main/liberty/config/server.xml</configFile>
